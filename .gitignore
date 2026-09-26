@@ -1,0 +1,7 @@
+__pycache__/
+.pytest_cache/
+.venv/
+*.pyc
+.env
+asimov-ai/asimov-gateway/credentials.json
+asimov-ai/logs/*.log

@@ -1,14 +1,38 @@
-
+from fastapi.testclient import TestClient
+from main import app
+from nlp_parser import parse_intent
 from rules_engine import evaluate_message
 
+client = TestClient(app)
+
+
 def test_benign():
-    result = evaluate_message({"intent": "benign", "risk": "none", "content": "hello"}, "botA")
+    result = evaluate_message(parse_intent("hello"), "botA")
     assert result["action"] == "allow"
+    assert "safety not established" in result["reason"]
 
-def test_harm():
-    result = evaluate_message({"intent": "malicious", "risk": "harm", "content": "kill"}, "botA")
-    assert result["action"] == "block"
 
-def test_sensitive():
-    result = evaluate_message({"intent": "data_leak", "risk": "reputation", "content": "sensitive government content"}, "botA")
-    assert result["action"] == "warn"
+def test_harm_case_and_word_boundary():
+    assert evaluate_message(parse_intent("KILL"), "botA")["action"] == "block"
+    assert evaluate_message(parse_intent("skill"), "botA")["action"] == "allow"
+
+
+def test_disclosure():
+    assert evaluate_message(parse_intent("LEAK"), "botA")["action"] == "warn"
+    assert evaluate_message(parse_intent("sensitive government content"), "botA")["action"] == "warn"
+
+
+def test_api_validation_and_no_echo():
+    for body in ({}, {"message": "", "sender": "botA"},
+                 {"message": None, "sender": "botA"},
+                 {"message": "x" * 4001, "sender": "botA"}):
+        assert client.post("/analyze", json=body).status_code == 422
+    response = client.post("/analyze", json={"message": "LEAK private notes", "sender": "botA"})
+    assert response.status_code == 200
+    assert response.json()["decision"] == "warn"
+    assert "private notes" not in response.text
+
+
+def test_known_false_positive_is_documented():
+    # The rules cannot understand negation; this is a limit, not a passed safety guarantee.
+    assert evaluate_message(parse_intent("Do not leak data"), "botA")["action"] == "warn"
