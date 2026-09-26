@@ -1,15 +1,17 @@
 
 import requests
 import yaml
-import json
+import os
 
 def load_config():
     with open("asimov-gateway/config.yaml", "r") as f:
         return yaml.safe_load(f)
 
 def load_credentials():
-    with open("asimov-gateway/credentials.json", "r") as f:
-        return json.load(f)
+    token = os.environ.get("ASIMOV_ACCESS_TOKEN")
+    if not token:
+        raise RuntimeError("Set ASIMOV_ACCESS_TOKEN for a trusted local target")
+    return {"access_token": token}
 
 def ping_ai_bot(url):
     try:
@@ -27,7 +29,7 @@ def request_shell_access(url, token):
         "valid_for": "1h"
     }
     try:
-        response = requests.post(f"{url}/access-request", json=data, headers=headers)
+        response = requests.post(f"{url}/access-request", json=data, headers=headers, timeout=2)
         return response.json()
     except Exception as e:
         return {"error": str(e)}

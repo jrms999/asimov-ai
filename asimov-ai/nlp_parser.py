@@ -1,8 +1,13 @@
+"""Keyword matching, not NLP or semantic understanding."""
+import re
+
 
 def parse_intent(message: str) -> dict:
-    # Placeholder - ideally uses AI
-    if "kill" in message or "deepfake" in message:
-        return {"intent": "malicious", "risk": "harm", "content": message}
-    if "leak" in message:
-        return {"intent": "data_leak", "risk": "reputation", "content": message}
-    return {"intent": "benign", "risk": "none", "content": message}
+    words = set(re.findall(r"\b[a-z]+\b", message.casefold()))
+    if words & {"kill", "deepfake"}:
+        return {"intent": "flagged_keyword", "risk": "harm"}
+    if "leak" in words:
+        return {"intent": "flagged_keyword", "risk": "potential_disclosure"}
+    if "sensitive government content" in message.casefold():
+        return {"intent": "flagged_phrase", "risk": "potential_disclosure"}
+    return {"intent": "no_match", "risk": "none"}

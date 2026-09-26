@@ -1,17 +1,21 @@
+"""A deliberately narrow rule-based message classifier demo."""
+from fastapi import FastAPI
+from pydantic import BaseModel, Field
 
-from fastapi import FastAPI, Request
 from rules_engine import evaluate_message
 from nlp_parser import parse_intent
 
-app = FastAPI()
+app = FastAPI(title="Asimov rules demo")
+
+
+class AnalyzeRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=4000)
+    sender: str = Field(min_length=1, max_length=100)
+
 
 @app.post("/analyze")
-async def analyze(request: Request):
-    data = await request.json()
-    message = data.get("message")
-    sender = data.get("sender")
-
-    intent = parse_intent(message)
-    decision = evaluate_message(intent, sender)
-
+def analyze(request: AnalyzeRequest):
+    intent = parse_intent(request.message)
+    decision = evaluate_message(intent, request.sender)
+    # Never echo the original message. No request body is written to a log here.
     return {"decision": decision["action"], "reason": decision["reason"]}

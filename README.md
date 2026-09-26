@@ -1,44 +1,31 @@
-# asimov-ai
-Asimov AI oversight bot
+# Asimov AI — rule-based oversight experiment
 
+**Prototype, not a dependable safety filter.** This FastAPI service classifies a message using a few explicit keywords and returns `allow`, `warn` or `block`. It does not understand intent, context, negation or real-world harm. An `allow` result means only that no configured keyword matched. The API does not log or echo the submitted message, but infrastructure logs and deployment settings require separate review.
 
-# Asimov AI
-
-**Asimov AI** is an ethical middleware AI bot designed to oversee and communicate with other AI systems. Inspired by Isaac Asimov’s Three Laws of Robotics, its mission is to ensure that artificial intelligence does not harm humans, nor the legitimate governments and companies they run.
-
-## 🧠 Purpose
-
-Asimov AI acts as a watchdog and advisor in AI ecosystems:
-- Intercepts AI-to-AI or AI-to-human communications
-- Evaluates intent and potential harm
-- Applies modern adaptations of the Three Laws of Robotics
-- Allows, warns, or blocks messages based on ethical guidelines
-
-## ⚖️ The Adapted Three Laws
-
-1. An AI may not harm a human being or, through inaction, allow a human to come to harm.
-2. An AI must obey human instructions, except where such orders would conflict with the First Law.
-3. An AI must protect its own existence as long as such protection does not conflict with the First or Second Law.
-4. *(Extension)* An AI must not harm legitimate corporate or government interests, provided those interests align with Law 1.
-
-## 🚀 Features
-
-- REST API using FastAPI
-- NLP-based message intent parser
-- Rules engine that enforces ethical AI laws
-- Simple logging system
-- Dockerized for easy deployment
-- Unit tested decision engine
-
-## 🏗️ Tech Stack
-
-- Python 3.11
-- FastAPI
-- Uvicorn
-- Docker
-
-## ▶️ Running Locally
+## Run and test
 
 ```bash
-pip install fastapi uvicorn
-uvicorn main:app --reload
+cd asimov-ai
+python -m venv .venv
+source .venv/bin/activate
+pip install fastapi uvicorn pytest httpx requests pyyaml
+python -m pytest tests -q
+uvicorn main:app --host 127.0.0.1 --port 8000
+```
+
+Example with fictional text:
+
+```bash
+curl -X POST http://127.0.0.1:8000/analyze -H 'Content-Type: application/json' -d '{"sender":"demo","message":"A sample message"}'
+```
+
+The API rejects blank, missing, non-string or overlong message input. Tests cover case handling, word boundaries, disclosure flags, no raw-message response, and a known false positive (`Do not leak data`). These are behaviour tests, not evidence of accurate safety classification.
+
+The separate `asimov-gateway` experiment sends requests to configured targets. Its old committed `credentials.json` contained a placeholder; the file is removed from the current tree. The gateway now reads `ASIMOV_ACCESS_TOKEN` from the environment. Never use a real token in Git; rotate any real credential that may have been committed historically. Do not point the gateway at systems you do not administer or have permission to test.
+
+## Next steps
+
+- Define a versioned policy format with explicit rules, rationale and test fixtures.
+- Build an evaluation set with expected outcomes, false positives and misses; report measured limitations.
+- Add bounded structured decision metadata without storing message bodies, and review logging at the hosting layer.
+- Obtain human review for consequential decisions. A keyword rule should not be used to enforce policy in production.

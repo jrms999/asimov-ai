@@ -1,8 +1,10 @@
+"""Explicit demo decisions. A keyword hit is not a safety determination."""
+
 
 def evaluate_message(intent: dict, sender: str):
-    # Simulate logic from Asimov’s Laws
-    if "harm" in intent.get("risk", ""):
-        return {"action": "block", "reason": "Violates Law 1"}
-    if "sensitive government content" in intent.get("content", ""):
-        return {"action": "warn", "reason": "Potential Law 4 conflict"}
-    return {"action": "allow", "reason": "No violation detected"}
+    risk = intent.get("risk")
+    if risk == "harm":
+        return {"action": "block", "reason": "Harm-related keyword matched; manual review needed"}
+    if risk == "potential_disclosure":
+        return {"action": "warn", "reason": "Potential disclosure keyword matched; manual review needed"}
+    return {"action": "allow", "reason": "No configured keyword matched; safety not established"}
