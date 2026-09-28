@@ -33,6 +33,22 @@ def test_api_validation_and_no_echo():
     assert "private notes" not in response.text
 
 
+def test_overlong_message_is_absent_from_validation_response():
+    message = "private-message-marker" * 201
+    response = client.post("/analyze", json={"message": message, "sender": "botA"})
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"] == ["body", "message"]
+    assert all("input" not in error for error in response.json()["detail"])
+    assert "private-message-marker" not in response.text
+
+
+def test_whitespace_only_messages_are_rejected():
+    for message in ("   ", "\n\t  "):
+        response = client.post("/analyze", json={"message": message, "sender": "botA"})
+        assert response.status_code == 422
+        assert "decision" not in response.json()
+
+
 def test_known_false_positive_is_documented():
     # The rules cannot understand negation; this is a limit, not a passed safety guarantee.
     assert evaluate_message(parse_intent("Do not leak data"), "botA")["action"] == "warn"
